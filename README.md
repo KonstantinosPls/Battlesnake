@@ -29,14 +29,21 @@ Running Battlesnake at http://0.0.0.0:8000
 Open [localhost:8000](http://localhost:8000) in your browser and you should see
 
 ```json
-{"apiversion":"1","author":"","color":"#888888","head":"default","tail":"default"}
+{
+  "apiversion": "1",
+  "author": "",
+  "color": "#888888",
+  "head": "default",
+  "tail": "default"
+}
 ```
 
 ## Play a Game Locally
 
 Install the [Battlesnake CLI](https://github.com/BattlesnakeOfficial/rules/tree/main/cli)
-* You can [download compiled binaries here](https://github.com/BattlesnakeOfficial/rules/releases)
-* or [install as a go package](https://github.com/BattlesnakeOfficial/rules/tree/main/cli#installation) (requires Go 1.18 or higher)
+
+- You can [download compiled binaries here](https://github.com/BattlesnakeOfficial/rules/releases)
+- or [install as a go package](https://github.com/BattlesnakeOfficial/rules/tree/main/cli#installation) (requires Go 1.18 or higher)
 
 Command to run a local game
 
