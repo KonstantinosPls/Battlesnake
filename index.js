@@ -10,7 +10,7 @@
 // To get you started we've included code to prevent your Battlesnake from moving backwards.
 // For more info see docs.battlesnake.com
 
-import runServer from './server.js';
+import runServer from "./server.js";
 
 // info is called when you create your Battlesnake on play.battlesnake.com
 // and controls your Battlesnake's appearance
@@ -21,8 +21,8 @@ function info() {
   return {
     apiversion: "1",
     author: "yiotak",
-    color: "#39FF14", 
-    head: "smile",  
+    color: "#39FF14",
+    head: "smile",
     tail: "pixel",
   };
 }
@@ -41,12 +41,11 @@ function end(gameState) {
 // Valid moves are "up", "down", "left", or "right"
 // See https://docs.battlesnake.com/api/example-move for available data
 function move(gameState) {
-
   let isMoveSafe = {
     up: true,
     down: true,
     left: true,
-    right: true
+    right: true,
   };
 
   const boardWidth = gameState.board.width;
@@ -56,16 +55,17 @@ function move(gameState) {
   const myHead = gameState.you.body[0];
   const myNeck = gameState.you.body[1];
 
-  if (myNeck.x < myHead.x) {        // Neck is left of head, don't move left
+  if (myNeck.x < myHead.x) {
+    // Neck is left of head, don't move left
     isMoveSafe.left = false;
-
-  } else if (myNeck.x > myHead.x) { // Neck is right of head, don't move right
+  } else if (myNeck.x > myHead.x) {
+    // Neck is right of head, don't move right
     isMoveSafe.right = false;
-
-  } else if (myNeck.y < myHead.y) { // Neck is below head, don't move down
+  } else if (myNeck.y < myHead.y) {
+    // Neck is below head, don't move down
     isMoveSafe.down = false;
-
-  } else if (myNeck.y > myHead.y) { // Neck is above head, don't move up
+  } else if (myNeck.y > myHead.y) {
+    // Neck is above head, don't move up
     isMoveSafe.up = false;
   }
 
@@ -133,7 +133,7 @@ function move(gameState) {
   }
 
   // Are there any safe moves left?
-  const safeMoves = Object.keys(isMoveSafe).filter(key => isMoveSafe[key]);
+  const safeMoves = Object.keys(isMoveSafe).filter((key) => isMoveSafe[key]);
   if (safeMoves.length == 0) {
     console.log(`MOVE ${gameState.turn}: No safe moves detected! Moving down`);
     return { move: "down" };
@@ -144,10 +144,12 @@ function move(gameState) {
   if (food.length > 0 && safeMoves.length > 0) {
     // Find the closest food using Manhattan distance.
     let closestFood = food[0];
-    let minDistance = Math.abs(myHead.x - food[0].x) + Math.abs(myHead.y - food[0].y);
+    let minDistance =
+      Math.abs(myHead.x - food[0].x) + Math.abs(myHead.y - food[0].y);
 
     for (let i = 1; i < food.length; i++) {
-      const distance = Math.abs(myHead.x - food[i].x) + Math.abs(myHead.y - food[i].y);
+      const distance =
+        Math.abs(myHead.x - food[i].x) + Math.abs(myHead.y - food[i].y);
       if (distance < minDistance) {
         minDistance = distance;
         closestFood = food[i];
@@ -156,13 +158,18 @@ function move(gameState) {
 
     // Prefer safe moves that go toward the closest food.
     const preferredMoves = [];
-    if (closestFood.x < myHead.x && safeMoves.includes('left')) preferredMoves.push('left');
-    if (closestFood.x > myHead.x && safeMoves.includes('right')) preferredMoves.push('right');
-    if (closestFood.y < myHead.y && safeMoves.includes('down')) preferredMoves.push('down');
-    if (closestFood.y > myHead.y && safeMoves.includes('up')) preferredMoves.push('up');
+    if (closestFood.x < myHead.x && safeMoves.includes("left"))
+      preferredMoves.push("left");
+    if (closestFood.x > myHead.x && safeMoves.includes("right"))
+      preferredMoves.push("right");
+    if (closestFood.y < myHead.y && safeMoves.includes("down"))
+      preferredMoves.push("down");
+    if (closestFood.y > myHead.y && safeMoves.includes("up"))
+      preferredMoves.push("up");
 
     if (preferredMoves.length > 0) {
-      const nextMove = preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
+      const nextMove =
+        preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
       console.log(`MOVE ${gameState.turn}: ${nextMove}`);
       return { move: nextMove };
     }
@@ -178,5 +185,5 @@ runServer({
   info: info,
   start: start,
   move: move,
-  end: end
+  end: end,
 });
