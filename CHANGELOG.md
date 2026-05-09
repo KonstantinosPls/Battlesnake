@@ -19,3 +19,10 @@ Iteration #2
 
     - Add a pull request template for repository
     - Create changelog file
+    - Add and configure EditorConfig
+    - Add and configure Prettier with default options
+    - Add and configure ESLint with sonarjs, unicorn, and    eslint-comments plugins(using the @eslint-community fork for ESLint v10 compatibility)
+    - Lint the entire codebase
+    - Disable Express x-powered-by header for security
+    - Find and eat closest food using Manhattan distance
+    - Handle head-to-head movement against equal or longer opponents

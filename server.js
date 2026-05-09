@@ -2,6 +2,7 @@ import express from "express";
 
 export default function runServer(handlers) {
   const app = express();
+  app.disable("x-powered-by");
   app.use(express.json());
 
   app.get("/", (req, res) => {
