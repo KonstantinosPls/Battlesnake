@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-10
+
+### Fixed
+- Added author name in README.md
+
 ## [1.0.0] - 2026-05-09
 
 ### Added
