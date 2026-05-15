@@ -8,8 +8,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "prettier --write .",
+    "test": "node --experimental-vm-modules node_modules/jest-cli/bin/jest.js",    "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
@@ -26,8 +25,10 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.1",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^29.15.2",
     "eslint-plugin-sonarjs": "^4.0.3",
     "eslint-plugin-unicorn": "^64.0.0",
+    "jest": "^30.4.2",
     "prettier": "^3.8.3"
   }
 }
