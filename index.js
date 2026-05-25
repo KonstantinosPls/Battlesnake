@@ -140,7 +140,7 @@ function move(gameState) {
     return { move: "down" };
   }
 
-  // Step 4 - Move towards food instead of random, to regain health and survive longer.
+  // Move towards food instead of random, to regain health and survive longer.
   const food = gameState.board.food;
   if (food.length > 0 && safeMoves.length > 0) {
     // Find the closest food using Manhattan distance.
@@ -176,25 +176,25 @@ function move(gameState) {
     }
   }
 
-  // Fallback: choose a random safe move if no food-seeking direction is available.
-// Use flood fill to pick the safe move with the most open space.
-let bestMove = safeMoves[0];
-let bestSpace = -1;
+  // Use flood fill to pick the safe move with the most open space.
+  let bestMove = safeMoves[0];
+  let bestSpace = -1;
 
-for (const direction of safeMoves) {
-  const delta = moveDeltas[direction];
-  const nextHead = {
-    x: myHead.x + delta.x,
-    y: myHead.y + delta.y,
-  };
-  const space = floodFill(gameState.board, nextHead);
-  if (space > bestSpace) {
-    bestSpace = space;
-    bestMove = direction;
+  for (const direction of safeMoves) {
+    const delta = moveDeltas[direction];
+    const nextHead = {
+      x: myHead.x + delta.x,
+      y: myHead.y + delta.y,
+    };
+    const space = floodFill(gameState.board, nextHead);
+    if (space > bestSpace) {
+      bestSpace = space;
+      bestMove = direction;
+    }
   }
-}
 
-const nextMove = bestMove;
+  console.log(`MOVE ${gameState.turn}: ${bestMove}`);
+  return { move: bestMove };
 }
 
 runServer({
