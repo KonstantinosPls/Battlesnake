@@ -31,7 +31,7 @@ Open [localhost:8000](http://localhost:8000) in your browser and you should see
 ```json
 {
   "apiversion": "1",
-  "author": "",
+  "author": "yiotak",
   "color": "#888888",
   "head": "default",
   "tail": "default"
