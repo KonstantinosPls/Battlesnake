@@ -8,7 +8,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --experimental-vm-modules node_modules/jest-cli/bin/jest.js",    "format": "prettier --write .",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
