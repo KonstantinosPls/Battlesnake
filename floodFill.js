@@ -1,7 +1,7 @@
 /**
  * @param {object} board
- * @param {{x: number, y: number}} start 
- * @returns {number}  
+ * @param {{x: number, y: number}} start
+ * @returns {number}
  */
 export function floodFill(board, start) {
   const { width, height, snakes } = board;
