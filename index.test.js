@@ -70,11 +70,15 @@ describe("index move helpers", () => {
             { x: 2, y: 1 },
           ],
           length: 2,
+          health: 99,
         },
         {
           id: "enemy",
-          body: [{ x: 3, y: 2 }],
+          body: [
+            { x: 3, y: 2 }, // head — also only segment, must stay blocked
+          ],
           length: 1,
+          health: 99,
         },
       ],
     });
@@ -105,11 +109,13 @@ describe("index move helpers", () => {
             { x: 2, y: 1 },
           ],
           length: 3,
+          health: 99,
         },
         {
           id: "enemy",
           body: [{ x: 3, y: 2 }],
           length: 3,
+          health: 99,
         },
       ],
     });
@@ -153,5 +159,116 @@ describe("index move helpers", () => {
     });
 
     expect(move(gameState)).toEqual({ move: "right" });
+  });
+
+  // ── Tail-collision tests (issue #32) ────────────────────────────────────────
+
+  test("allows moving into own tail square on a normal turn", () => {
+    // Snake circling: head (2,2), neck (2,1), body (3,1), tail (3,2).
+    // Tail is at (3,2) — adjacent to the right of the head.
+    // With health < 100 the tail moves away, so right must remain safe.
+    const gameState = makeGameState({
+      youBody: [
+        { x: 2, y: 2 }, // head
+        { x: 2, y: 1 }, // neck
+        { x: 3, y: 1 }, // body
+        { x: 3, y: 2 }, // tail — moving right leads here
+      ],
+      snakes: [
+        {
+          id: "you",
+          body: [
+            { x: 2, y: 2 }, // head
+            { x: 2, y: 1 }, // neck  (blocks down)
+            { x: 3, y: 1 }, // body  (blocks nothing adjacent to head)
+            { x: 3, y: 2 }, // tail  — moving right leads here
+          ],
+          length: 4,
+          health: 50, // did NOT eat — tail moves away
+        },
+      ],
+    });
+
+    const safety = applyBodyCollisions(
+      getInitialMoveSafety(gameState),
+      gameState,
+    );
+
+    // Tail square (right) should be safe; neck square (down) should be blocked.
+    expect(safety.right).toBe(true);
+    expect(safety.down).toBe(false);
+  });
+
+  test("allows moving into an opponent tail square on a normal turn", () => {
+    // Our head at (2,2). Opponent body: head (0,2), body (1,2), tail (2,3).
+    // Tail is adjacent above our head — should be safe (health < 100).
+    const gameState = makeGameState({
+      youBody: [
+        { x: 2, y: 2 },
+        { x: 2, y: 1 },
+      ],
+      snakes: [
+        {
+          id: "you",
+          body: [
+            { x: 2, y: 2 },
+            { x: 2, y: 1 },
+          ],
+          length: 2,
+          health: 50,
+        },
+        {
+          id: "enemy",
+          body: [
+            { x: 0, y: 2 }, // enemy head
+            { x: 1, y: 2 }, // enemy body (blocks left of our head)
+            { x: 2, y: 3 }, // enemy tail — above our head, should be safe
+          ],
+          length: 3,
+          health: 50,
+        },
+      ],
+    });
+
+    const safety = applyBodyCollisions(
+      getInitialMoveSafety(gameState),
+      gameState,
+    );
+
+    expect(safety.up).toBe(true); // opponent tail — safe
+    expect(safety.left).toBe(false); // opponent body — blocked
+  });
+
+  test("tail square remains blocked when snake just ate food (health === 100)", () => {
+    // Same layout as the own-tail test, but health is 100 — tail stays.
+    // Moving right (into tail at (3,2)) must be blocked.
+    const gameState = makeGameState({
+      youBody: [
+        { x: 2, y: 2 }, // head
+        { x: 2, y: 1 }, // neck
+        { x: 3, y: 1 }, // body
+        { x: 3, y: 2 }, // tail — stays because snake just ate
+      ],
+      snakes: [
+        {
+          id: "you",
+          body: [
+            { x: 2, y: 2 }, // head
+            { x: 2, y: 1 }, // neck
+            { x: 3, y: 1 }, // body
+            { x: 3, y: 2 }, // tail — stays because snake just ate
+          ],
+          length: 4,
+          health: 100, // just ate food — tail does NOT move
+        },
+      ],
+    });
+
+    const safety = applyBodyCollisions(
+      getInitialMoveSafety(gameState),
+      gameState,
+    );
+
+    expect(safety.right).toBe(false); // tail stays — must be blocked
   });
 });

@@ -83,7 +83,14 @@ export function applyBodyCollisions(isMoveSafe, gameState) {
 
   for (const snake of gameState.board.snakes) {
     const bodyStartIndex = snake.id === gameState.you.id ? 1 : 0;
-    for (let i = bodyStartIndex; i < snake.body.length; i++) {
+    // The tail moves away each turn, so skip it — unless the snake just ate
+    // food (health === 100), in which case the tail stays and remains unsafe.
+    // A single-segment snake has no separate tail to free.
+    const tailIndex =
+      snake.health !== 100 && snake.body.length > 1
+        ? snake.body.length - 1
+        : snake.body.length;
+    for (let i = bodyStartIndex; i < tailIndex; i++) {
       const segment = snake.body[i];
       if (segment.x === myHead.x - 1 && segment.y === myHead.y) {
         isMoveSafe.left = false;
