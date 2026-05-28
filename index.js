@@ -226,19 +226,45 @@ export function chooseFoodMove(myHead, safeMoves, food) {
 }
 
 /**
+ * Builds a copy of the board for flood-fill purposes with each snake's tail
+ * segment removed, since tails move away next turn and are not real obstacles.
+ * The tail is kept when the snake just ate (health === 100) because it stays
+ * put for one turn, and for single-segment snakes that have no separate tail.
+ *
+ * @param {object} board - The board from the Battlesnake game state.
+ * @returns {object} A board copy whose snake bodies exclude movable tails.
+ */
+function buildFloodBoard(board) {
+  return {
+    ...board,
+    snakes: board.snakes.map((snake) => {
+      const body =
+        snake.health !== 100 && snake.body.length > 1
+          ? snake.body.slice(0, -1)
+          : snake.body;
+      return { ...snake, body };
+    }),
+  };
+}
+
+/**
  * Decides the snake's next move for the current turn. Combines safety checks
- * (neck, walls, bodies, head-to-head), then prefers food, and finally falls
- * back to the safe move that leads into the most open space via flood fill.
+ * (neck, walls, bodies, head-to-head), then prefers food only when it does not
+ * lead into a cramped space, and finally falls back to the safe move that leads
+ * into the most open space via flood fill.
  *
  * @param {object} gameState - The current game state from the Battlesnake engine.
  * @returns {{move: string}} The chosen direction: "up", "down", "left", or "right".
  */
 function move(gameState) {
   const myHead = gameState.you.body[0];
-  const isMoveSafe = applyHeadToHeadSafety(
-    applyBodyCollisions(getInitialMoveSafety(gameState), gameState),
+  const myHealth = gameState.you.health;
+
+  const afterBody = applyBodyCollisions(
+    getInitialMoveSafety(gameState),
     gameState,
   );
+  const isMoveSafe = applyHeadToHeadSafety({ ...afterBody }, gameState);
 
   const safeMoves = Object.keys(isMoveSafe).filter((key) => isMoveSafe[key]);
   if (safeMoves.length === 0) {
@@ -246,11 +272,29 @@ function move(gameState) {
     return { move: "down" };
   }
 
+  const floodBoard = buildFloodBoard(gameState.board);
+
+  // Only chase food when the resulting square leads into enough open space to
+  // fit the body, otherwise the snake can trap itself in a dead end.
   const food = gameState.board.food;
   const foodMove = chooseFoodMove(myHead, safeMoves, food);
   if (foodMove !== undefined) {
-    console.log(`MOVE ${gameState.turn}: ${foodMove}`);
-    return { move: foodMove };
+    const delta = moveDeltas[foodMove];
+    const foodSquare = { x: myHead.x + delta.x, y: myHead.y + delta.y };
+    if (floodFill(floodBoard, foodSquare) >= gameState.you.length) {
+      console.log(`MOVE ${gameState.turn}: ${foodMove}`);
+      return { move: foodMove };
+    }
+  }
+
+  // When starving, risk a head-to-head to reach food rather than circling
+  if (myHealth < 25) {
+    const riskyMoves = Object.keys(afterBody).filter((k) => afterBody[k]);
+    const riskyFoodMove = chooseFoodMove(myHead, riskyMoves, food);
+    if (riskyFoodMove !== undefined) {
+      console.log(`MOVE ${gameState.turn}: ${riskyFoodMove}`);
+      return { move: riskyFoodMove };
+    }
   }
 
   let bestMove = safeMoves[0];
@@ -262,7 +306,7 @@ function move(gameState) {
       x: myHead.x + delta.x,
       y: myHead.y + delta.y,
     };
-    const space = floodFill(gameState.board, nextHead);
+    const space = floodFill(floodBoard, nextHead);
     if (space > bestSpace) {
       bestSpace = space;
       bestMove = direction;
