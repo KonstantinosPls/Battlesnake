@@ -63,6 +63,6 @@ export default [
   },
   prettier,
   {
-    ignores: ["node_modules/**", "package-lock.json", "coverage/**"],
+    ignores: ["node_modules/**", "package-lock.json", "coverage/**", "docs/**"],
   },
 ];

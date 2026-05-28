@@ -1,5 +1,13 @@
 import express from "express";
 
+/**
+ * Starts the Express HTTP server that exposes the Battlesnake API endpoints
+ * (GET / for info, POST /start, /move, and /end) and routes them to the
+ * provided handler functions. Listens on the PORT env var or 8000 by default.
+ *
+ * @param {{info: Function, start: Function, move: Function, end: Function}} handlers - The Battlesnake lifecycle handler functions.
+ * @returns {void}
+ */
 export default function runServer(handlers) {
   const app = express();
   app.disable("x-powered-by");
