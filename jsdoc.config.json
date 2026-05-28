@@ -1,0 +1,10 @@
+{
+  "source": {
+    "include": ["index.js", "floodFill.js", "server.js"],
+    "includePattern": ".+\\.js$"
+  },
+  "opts": {
+    "destination": "docs",
+    "recurse": false
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "starter-snake-javascript",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "BattlesnakeOfficial",
   "description": "An official Battlesnake template written in JavaScript. Get started at play.battlesnake.com.",
   "license": "MIT",
@@ -8,11 +8,14 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "docs": "jsdoc -c jsdoc.config.json"
   },
   "repository": {
     "type": "git",
@@ -26,8 +29,11 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.1",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^29.15.2",
     "eslint-plugin-sonarjs": "^4.0.3",
     "eslint-plugin-unicorn": "^64.0.0",
+    "jest": "^30.4.2",
+    "jsdoc": "^4.0.5",
     "prettier": "^3.8.3"
   }
 }
