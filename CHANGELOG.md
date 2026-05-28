@@ -14,6 +14,7 @@ Iteration #3
     - Set up Jest test suite with eslint-plugin-jest integration
     - Add test, test:watch, and test:coverage npm scripts
     - Document all functions with JSDoc and generate HTML documentation (docs folder)
+    - Update README with system documentation (scripts, project structure, move logic, workflow)
 
 ### Fixed
 
