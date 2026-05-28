@@ -17,7 +17,6 @@ Iteration #3
 ## [1.0.1] - 2026-05-10
 
 ### Fixed
-
 - Added author name in README.md
 
 ## [1.0.0] - 2026-05-09
