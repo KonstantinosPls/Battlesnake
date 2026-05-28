@@ -14,9 +14,14 @@ Iteration #3
     - Set up Jest test suite with eslint-plugin-jest integration
     - Add test, test:watch, and test:coverage npm scripts
 
+### Fixed
+
+    - Allow moving into the tail squares of any snake (tail moves away each turn unless food was just eaten)
+
 ## [1.0.1] - 2026-05-10
 
 ### Fixed
+
 - Added author name in README.md
 
 ## [1.0.0] - 2026-05-09

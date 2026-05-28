@@ -10,6 +10,8 @@
 // To get you started we've included code to prevent your Battlesnake from moving backwards.
 // For more info see docs.battlesnake.com
 
+import { fileURLToPath } from "node:url";
+
 import runServer from "./server.js";
 import { floodFill } from "./floodFill.js";
 
@@ -85,9 +87,14 @@ function move(gameState) {
   }
 
   // Prevent collisions with snake bodies (self and opponents).
+  // The tail segment moves away each turn, so it is safe to enter —
+  // unless the snake just ate food (health === 100), in which case the
+  // tail stays and the square remains blocked.
   for (const snake of gameState.board.snakes) {
     const bodyStartIndex = snake.id === gameState.you.id ? 1 : 0;
-    for (let i = bodyStartIndex; i < snake.body.length; i++) {
+    const tailIndex =
+      snake.health === 100 ? snake.body.length : snake.body.length - 1;
+    for (let i = bodyStartIndex; i < tailIndex; i++) {
       const segment = snake.body[i];
       if (segment.x === myHead.x - 1 && segment.y === myHead.y) {
         isMoveSafe.left = false;
@@ -197,9 +204,15 @@ function move(gameState) {
   return { move: bestMove };
 }
 
-runServer({
-  info: info,
-  start: start,
-  move: move,
-  end: end,
-});
+const isMainModule = fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMainModule) {
+  runServer({
+    info: info,
+    start: start,
+    move: move,
+    end: end,
+  });
+}
+
+export { move };
