@@ -13,6 +13,7 @@ Iteration #3
     - Implement flood fill algorithm using TDD
     - Set up Jest test suite with eslint-plugin-jest integration
     - Add test, test:watch, and test:coverage npm scripts
+    - Document all functions with JSDoc and generate HTML documentation (docs folder)
 
 ### Fixed
 

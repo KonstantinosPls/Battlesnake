@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "docs": "jsdoc -c jsdoc.config.json"
   },
   "repository": {
     "type": "git",
@@ -32,6 +33,7 @@
     "eslint-plugin-sonarjs": "^4.0.3",
     "eslint-plugin-unicorn": "^64.0.0",
     "jest": "^30.4.2",
+    "jsdoc": "^4.0.5",
     "prettier": "^3.8.3"
   }
 }
