@@ -79,7 +79,10 @@ describe("index move helpers", () => {
       ],
     });
 
-    const safety = applyBodyCollisions(getInitialMoveSafety(gameState), gameState);
+    const safety = applyBodyCollisions(
+      getInitialMoveSafety(gameState),
+      gameState,
+    );
 
     expect(safety.right).toBe(false);
     expect(safety.left).toBe(true);

@@ -7,7 +7,7 @@
 //
 // This file can be a nice home for your Battlesnake logic and helper functions.
 
-import { fileURLToPath } from "url";
+import { fileURLToPath } from "node:url";
 
 import runServer from "./server.js";
 import { floodFill } from "./floodFill.js";
@@ -119,7 +119,10 @@ export function applyHeadToHeadSafety(isMoveSafe, gameState) {
         x: myHead.x + moveDeltas[direction].x,
         y: myHead.y + moveDeltas[direction].y,
       };
-      if (myNextHead.x === opponentHead.x && myNextHead.y === opponentHead.y) {
+      const manhattanDistance =
+        Math.abs(opponentHead.x - myNextHead.x) +
+        Math.abs(opponentHead.y - myNextHead.y);
+      if (manhattanDistance === 1) {
         isMoveSafe[direction] = false;
       }
     }
@@ -130,14 +133,16 @@ export function applyHeadToHeadSafety(isMoveSafe, gameState) {
 
 export function chooseFoodMove(myHead, safeMoves, food) {
   if (food.length === 0 || safeMoves.length === 0) {
-    return null;
+    return;
   }
 
   let closestFood = food[0];
-  let minDistance = Math.abs(myHead.x - food[0].x) + Math.abs(myHead.y - food[0].y);
+  let minDistance =
+    Math.abs(myHead.x - food[0].x) + Math.abs(myHead.y - food[0].y);
 
   for (let i = 1; i < food.length; i++) {
-    const distance = Math.abs(myHead.x - food[i].x) + Math.abs(myHead.y - food[i].y);
+    const distance =
+      Math.abs(myHead.x - food[i].x) + Math.abs(myHead.y - food[i].y);
     if (distance < minDistance) {
       minDistance = distance;
       closestFood = food[i];
@@ -145,13 +150,17 @@ export function chooseFoodMove(myHead, safeMoves, food) {
   }
 
   const preferredMoves = [];
-  if (closestFood.x < myHead.x && safeMoves.includes("left")) preferredMoves.push("left");
-  if (closestFood.x > myHead.x && safeMoves.includes("right")) preferredMoves.push("right");
-  if (closestFood.y < myHead.y && safeMoves.includes("down")) preferredMoves.push("down");
-  if (closestFood.y > myHead.y && safeMoves.includes("up")) preferredMoves.push("up");
+  if (closestFood.x < myHead.x && safeMoves.includes("left"))
+    preferredMoves.push("left");
+  if (closestFood.x > myHead.x && safeMoves.includes("right"))
+    preferredMoves.push("right");
+  if (closestFood.y < myHead.y && safeMoves.includes("down"))
+    preferredMoves.push("down");
+  if (closestFood.y > myHead.y && safeMoves.includes("up"))
+    preferredMoves.push("up");
 
   if (preferredMoves.length === 0) {
-    return null;
+    return;
   }
 
   return preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
@@ -172,7 +181,7 @@ function move(gameState) {
 
   const food = gameState.board.food;
   const foodMove = chooseFoodMove(myHead, safeMoves, food);
-  if (foodMove !== null) {
+  if (foodMove !== undefined) {
     console.log(`MOVE ${gameState.turn}: ${foodMove}`);
     return { move: foodMove };
   }
@@ -208,4 +217,5 @@ if (isMainModule) {
   });
 }
 
-export { floodFill, info, start, end, move, moveDeltas };
+export { info, start, end, move, moveDeltas };
+export { floodFill } from "./floodFill.js";
