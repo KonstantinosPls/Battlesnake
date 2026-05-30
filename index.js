@@ -226,6 +226,56 @@ export function chooseFoodMove(myHead, safeMoves, food) {
 }
 
 /**
+ * Simulates our snake moving one step in the given direction and returns the
+ * resulting game state. The snake's body is advanced (tail removed unless food
+ * is eaten), food is removed if eaten, and health is updated. Opponent snakes
+ * are left in their current positions.
+ *
+ * @param {object} gameState - The current game state from the Battlesnake engine.
+ * @param {string} direction - One of "up", "down", "left", or "right".
+ * @returns {object} A new game state reflecting the snake's move.
+ */
+export function simulateMove(gameState, direction) {
+  const mySnake = gameState.you;
+  const board = gameState.board;
+  const delta = moveDeltas[direction];
+
+  const newHead = {
+    x: mySnake.body[0].x + delta.x,
+    y: mySnake.body[0].y + delta.y,
+  };
+
+  const ateFood = board.food.some(
+    (f) => f.x === newHead.x && f.y === newHead.y,
+  );
+
+  const newBody = ateFood
+    ? [newHead, ...mySnake.body]
+    : [newHead, ...mySnake.body.slice(0, -1)];
+
+  const newSnake = {
+    ...mySnake,
+    body: newBody,
+    health: ateFood ? 100 : mySnake.health - 1,
+    length: newBody.length,
+  };
+
+  const newFood = ateFood
+    ? board.food.filter((f) => !(f.x === newHead.x && f.y === newHead.y))
+    : board.food;
+
+  const newSnakes = board.snakes.map((s) =>
+    s.id === mySnake.id ? newSnake : s,
+  );
+
+  return {
+    ...gameState,
+    you: newSnake,
+    board: { ...board, snakes: newSnakes, food: newFood },
+  };
+}
+
+/**
  * Builds a copy of the board for flood-fill purposes with each snake's tail
  * segment removed, since tails move away next turn and are not real obstacles.
  * The tail is kept when the snake just ate (health === 100) because it stays
@@ -272,16 +322,15 @@ function move(gameState) {
     return { move: "down" };
   }
 
-  const floodBoard = buildFloodBoard(gameState.board);
-
-  // Only chase food when the resulting square leads into enough open space to
-  // fit the body, otherwise the snake can trap itself in a dead end.
+  // Only chase food when the simulated state after eating has enough open space.
   const food = gameState.board.food;
   const foodMove = chooseFoodMove(myHead, safeMoves, food);
   if (foodMove !== undefined) {
-    const delta = moveDeltas[foodMove];
-    const foodSquare = { x: myHead.x + delta.x, y: myHead.y + delta.y };
-    if (floodFill(floodBoard, foodSquare) >= gameState.you.length) {
+    const simState = simulateMove(gameState, foodMove);
+    const simFloodBoard = buildFloodBoard(simState.board);
+    if (
+      floodFill(simFloodBoard, simState.you.body[0]) >= gameState.you.length
+    ) {
       console.log(`MOVE ${gameState.turn}: ${foodMove}`);
       return { move: foodMove };
     }
@@ -297,16 +346,15 @@ function move(gameState) {
     }
   }
 
+  // Lookahead: simulate each candidate move and score the resulting board state
+  // with flood fill to pick the move that leads into the most open space.
   let bestMove = safeMoves[0];
   let bestSpace = -1;
 
   for (const direction of safeMoves) {
-    const delta = moveDeltas[direction];
-    const nextHead = {
-      x: myHead.x + delta.x,
-      y: myHead.y + delta.y,
-    };
-    const space = floodFill(floodBoard, nextHead);
+    const simState = simulateMove(gameState, direction);
+    const simFloodBoard = buildFloodBoard(simState.board);
+    const space = floodFill(simFloodBoard, simState.you.body[0]);
     if (space > bestSpace) {
       bestSpace = space;
       bestMove = direction;
