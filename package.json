@@ -26,7 +26,10 @@
     "starter-snake-javascript": "file:"
   },
   "jest": {
-    "collectCoverageFrom": ["index.js", "floodFill.js"],
+    "collectCoverageFrom": [
+      "index.js",
+      "floodFill.js"
+    ],
     "coverageThreshold": {
       "global": {
         "lines": 50,
