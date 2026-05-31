@@ -297,6 +297,12 @@ function buildFloodBoard(board) {
   };
 }
 
+function getBoardSize(board) {
+  if (board.width <= 7 || board.height <= 7) return "small";
+  if (board.width >= 15 && board.height >= 15) return "large";
+  return "medium";
+}
+
 /**
  * Decides the snake's next move for the current turn. Combines safety checks
  * (neck, walls, bodies, head-to-head), then prefers food only when it does not
@@ -309,6 +315,7 @@ function buildFloodBoard(board) {
 function move(gameState) {
   const myHead = gameState.you.body[0];
   const myHealth = gameState.you.health;
+  const boardSize = getBoardSize(gameState.board);
 
   const afterBody = applyBodyCollisions(
     getInitialMoveSafety(gameState),
@@ -328,16 +335,18 @@ function move(gameState) {
   if (foodMove !== undefined) {
     const simState = simulateMove(gameState, foodMove);
     const simFloodBoard = buildFloodBoard(simState.board);
-    if (
-      floodFill(simFloodBoard, simState.you.body[0]) >= gameState.you.length
-    ) {
+    const spaceThreshold =
+      boardSize === "small"
+        ? gameState.you.length * 1.5
+        : gameState.you.length;
+    if (floodFill(simFloodBoard, simState.you.body[0]) >= spaceThreshold) {
       console.log(`MOVE ${gameState.turn}: ${foodMove}`);
       return { move: foodMove };
     }
   }
 
-  // When starving, risk a head-to-head to reach food rather than circling
-  if (myHealth < 25) {
+  const starvationThreshold = boardSize === "large" ? 50 : 25;
+  if (boardSize !== "small" && myHealth < starvationThreshold) {
     const riskyMoves = Object.keys(afterBody).filter((k) => afterBody[k]);
     const riskyFoodMove = chooseFoodMove(myHead, riskyMoves, food);
     if (riskyFoodMove !== undefined) {
@@ -376,5 +385,5 @@ if (isMainModule) {
   });
 }
 
-export { info, start, end, move, moveDeltas };
+export { info, start, end, move, moveDeltas, getBoardSize };
 export { floodFill } from "./floodFill.js";
