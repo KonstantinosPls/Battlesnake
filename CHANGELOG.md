@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+### Added
+
+- Add CI/CD GitHub Actions workflows: run tests and lint on PR to develop, run tests, lint, and coverage check (≥50%) on PR to main, deploy to Railway on push to main
+- Configure Jest coverage threshold (≥50%) and scope in package.json
+- Add check-issues.txt documenting the two issues following the full status flow
+- Implement 1-move lookahead using flood fill heuristic: simulate each candidate move before scoring so the snake evaluates space in the resulting board state
+
+### Fixed
+
+- Avoid food traps: food moves are only taken when the target square has reachable space ≥ snake length
+- Flood fill now excludes tail segments (unless health === 100), matching body collision logic
+
 ## [1.1.0] - 2026-05-28
 
 ### Added

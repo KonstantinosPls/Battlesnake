@@ -6,6 +6,7 @@ import {
   chooseFoodMove,
   getInitialMoveSafety,
   move,
+  simulateMove,
 } from "./index.js";
 
 function makeGameState({
@@ -14,6 +15,7 @@ function makeGameState({
   turn = 1,
   youBody,
   youLength,
+  youHealth = 99,
   snakes,
   food = [],
 }) {
@@ -21,6 +23,7 @@ function makeGameState({
     id: "you",
     body: youBody,
     length: youLength ?? youBody.length,
+    health: youHealth,
   };
 
   return {
@@ -270,5 +273,94 @@ describe("index move helpers", () => {
     );
 
     expect(safety.right).toBe(false); // tail stays — must be blocked
+  });
+});
+
+describe("simulateMove", () => {
+  test("advances head and removes tail on a normal turn", () => {
+    const gameState = makeGameState({
+      width: 11,
+      height: 11,
+      youBody: [
+        { x: 5, y: 5 },
+        { x: 5, y: 4 },
+        { x: 5, y: 3 },
+      ],
+    });
+
+    const result = simulateMove(gameState, "up");
+
+    expect(result.you.body[0]).toEqual({ x: 5, y: 6 });
+    expect(result.you.body).toHaveLength(3);
+    expect(result.you.body).not.toContainEqual({ x: 5, y: 3 });
+  });
+
+  test("keeps tail and resets health when food is eaten", () => {
+    const gameState = makeGameState({
+      width: 11,
+      height: 11,
+      youBody: [
+        { x: 5, y: 5 },
+        { x: 5, y: 4 },
+      ],
+      food: [{ x: 5, y: 6 }],
+    });
+
+    const result = simulateMove(gameState, "up");
+
+    expect(result.you.body).toHaveLength(3);
+    expect(result.you.body).toContainEqual({ x: 5, y: 4 });
+    expect(result.you.health).toBe(100);
+  });
+
+  test("removes eaten food from the board", () => {
+    const gameState = makeGameState({
+      width: 11,
+      height: 11,
+      youBody: [
+        { x: 5, y: 5 },
+        { x: 5, y: 4 },
+      ],
+      food: [
+        { x: 5, y: 6 },
+        { x: 1, y: 1 },
+      ],
+    });
+
+    const result = simulateMove(gameState, "up");
+
+    expect(result.board.food).not.toContainEqual({ x: 5, y: 6 });
+    expect(result.board.food).toContainEqual({ x: 1, y: 1 });
+  });
+
+  test("does not modify opponent snakes", () => {
+    const you = {
+      id: "you",
+      body: [
+        { x: 5, y: 5 },
+        { x: 5, y: 4 },
+      ],
+      health: 99,
+      length: 2,
+    };
+    const opponent = {
+      id: "opp",
+      body: [
+        { x: 3, y: 3 },
+        { x: 3, y: 2 },
+      ],
+      health: 99,
+      length: 2,
+    };
+    const gameState = {
+      turn: 1,
+      board: { width: 11, height: 11, food: [], snakes: [you, opponent] },
+      you,
+    };
+
+    const result = simulateMove(gameState, "up");
+
+    const resultOpp = result.board.snakes.find((s) => s.id === "opp");
+    expect(resultOpp.body).toEqual(opponent.body);
   });
 });
