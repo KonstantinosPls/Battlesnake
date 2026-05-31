@@ -1,0 +1,11 @@
+The following two issues demonstrate the complete issue status flow
+as required by the project submission guidelines.
+
+Issue #55 - Create the 4 GitHub Actions that we discussed in class
+https://github.com/KonstantinosPls/Battlesnake/issues/55
+
+Issue #60 - Use this heuristic method and look some moves in the future, to choose the best move (at least one move in the future)
+https://github.com/KonstantinosPls/Battlesnake/issues/60
+
+Both issues followed the full status flow:
+Draft -> New -> Backlog -> Ready -> In Progress -> In Review -> Done

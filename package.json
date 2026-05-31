@@ -25,6 +25,20 @@
     "express": "^4.20.0",
     "starter-snake-javascript": "file:"
   },
+  "jest": {
+    "collectCoverageFrom": [
+      "index.js",
+      "floodFill.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 50,
+        "functions": 50,
+        "branches": 50,
+        "statements": 50
+      }
+    }
+  },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.1",
     "eslint": "^10.3.0",
