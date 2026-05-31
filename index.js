@@ -336,9 +336,7 @@ function move(gameState) {
     const simState = simulateMove(gameState, foodMove);
     const simFloodBoard = buildFloodBoard(simState.board);
     const spaceThreshold =
-      boardSize === "small"
-        ? gameState.you.length * 1.5
-        : gameState.you.length;
+      boardSize === "small" ? gameState.you.length * 1.5 : gameState.you.length;
     if (floodFill(simFloodBoard, simState.you.body[0]) >= spaceThreshold) {
       console.log(`MOVE ${gameState.turn}: ${foodMove}`);
       return { move: foodMove };
