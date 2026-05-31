@@ -22,7 +22,7 @@
     "url": "git+https://github.com/BattlesnakeOfficial/starter-snake-javascript.git"
   },
   "dependencies": {
-    "express": "^4.20.0",
+    "express": "^5.2.1",
     "starter-snake-javascript": "file:"
   },
   "jest": {
