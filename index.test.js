@@ -4,6 +4,7 @@ import {
   applyBodyCollisions,
   applyHeadToHeadSafety,
   chooseFoodMove,
+  getBoardSize,
   getInitialMoveSafety,
   move,
   simulateMove,
@@ -362,5 +363,98 @@ describe("simulateMove", () => {
 
     const resultOpp = result.board.snakes.find((s) => s.id === "opp");
     expect(resultOpp.body).toEqual(opponent.body);
+  });
+});
+
+describe("getBoardSize", () => {
+  test("returns 'small' for a 7x7 board", () => {
+    expect(getBoardSize({ width: 7, height: 7 })).toBe("small");
+  });
+
+  test("returns 'medium' for an 11x11 board", () => {
+    expect(getBoardSize({ width: 11, height: 11 })).toBe("medium");
+  });
+
+  test("returns 'large' for a 19x19 board", () => {
+    expect(getBoardSize({ width: 19, height: 19 })).toBe("large");
+  });
+
+  test("returns 'small' for mixed dimensions where one side is <=7", () => {
+    expect(getBoardSize({ width: 7, height: 15 })).toBe("small");
+    expect(getBoardSize({ width: 19, height: 7 })).toBe("small");
+  });
+});
+
+describe("move size-aware behaviour", () => {
+  test("skips risky food move on small board even when health is low", () => {
+    const you = {
+      id: "you",
+      body: [
+        { x: 3, y: 3 },
+        { x: 3, y: 2 },
+      ],
+      length: 3,
+      health: 20,
+    };
+    const enemy = {
+      id: "enemy",
+      body: [
+        { x: 4, y: 4 },
+        { x: 5, y: 4 },
+        { x: 6, y: 4 },
+      ],
+      length: 3,
+      health: 99,
+    };
+    const gameState = {
+      turn: 1,
+      board: {
+        width: 7,
+        height: 7,
+        food: [{ x: 4, y: 3 }],
+        snakes: [you, enemy],
+      },
+      you,
+    };
+
+    // Food is to the right but right is head-to-head danger with equal-length enemy.
+    // On a small board the risky block is skipped, so the snake stays safe with "left".
+    expect(move(gameState)).toEqual({ move: "left" });
+  });
+
+  test("chases food via risky move on large board when health is 40", () => {
+    const you = {
+      id: "you",
+      body: [
+        { x: 9, y: 9 },
+        { x: 9, y: 8 },
+      ],
+      length: 3,
+      health: 40,
+    };
+    const enemy = {
+      id: "enemy",
+      body: [
+        { x: 10, y: 10 },
+        { x: 10, y: 11 },
+        { x: 10, y: 12 },
+      ],
+      length: 3,
+      health: 99,
+    };
+    const gameState = {
+      turn: 1,
+      board: {
+        width: 19,
+        height: 19,
+        food: [{ x: 10, y: 9 }],
+        snakes: [you, enemy],
+      },
+      you,
+    };
+
+    // Food is right but right is head-to-head danger. On a large board,
+    // starvationThreshold=50 so health=40 triggers the risky block → chases food.
+    expect(move(gameState)).toEqual({ move: "right" });
   });
 });
