@@ -18,6 +18,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Avoid food traps: food moves are only taken when the target square has reachable space ≥ snake length
 - Flood fill now excludes tail segments (unless health === 100), matching body collision logic
 
+## [1.1.1] - 2026-05-31
+
+### Fixed
+
+- Updated Battlesnake appearance:
+  - Changed color to Navy Blue (#000080)
+  - Changed head style to fang
+  - Changed tail style to bolt
+
 ## [1.1.0] - 2026-05-28
 
 ### Added

@@ -30,9 +30,9 @@ function info() {
   return {
     apiversion: "1",
     author: "yiotak",
-    color: "#39FF14",
-    head: "smile",
-    tail: "pixel",
+    color: "#000080",
+    head: "fang",
+    tail: "bolt",
   };
 }
 
