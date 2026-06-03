@@ -357,6 +357,14 @@ function buildFloodBoard(board) {
   };
 }
 
+/**
+ * Classifies the board into a size category used to scale thresholds throughout
+ * the move logic. Small boards favour conservative play; large boards allow more
+ * aggressive food-chasing and hunting.
+ *
+ * @param {{width: number, height: number}} board - The game board.
+ * @returns {"small"|"medium"|"large"} "small" when either dimension is ≤7, "large" when both are ≥15, otherwise "medium".
+ */
 function getBoardSize(board) {
   if (board.width <= 7 || board.height <= 7) return "small";
   if (board.width >= 15 && board.height >= 15) return "large";
