@@ -226,19 +226,160 @@ export function chooseFoodMove(myHead, safeMoves, food) {
 }
 
 /**
+ * Picks a safe move that intercepts the nearest opponent that is strictly
+ * shorter than our snake. Among all safe directions, chooses the one whose
+ * resulting head position has the smallest Manhattan distance to the target
+ * opponent's head. Returns undefined when no shorter opponent exists or no
+ * safe direction moves toward one.
+ *
+ * @param {{x: number, y: number}} myHead - The current position of our snake's head.
+ * @param {number} myLength - The current length of our snake.
+ * @param {string[]} safeMoves - The directions currently considered safe.
+ * @param {Array<object>} opponents - All opponent snakes from the board.
+ * @returns {(string|undefined)} The direction that best intercepts a smaller snake, or undefined.
+ */
+export function chooseHuntMove(myHead, myLength, safeMoves, opponents) {
+  if (safeMoves.length === 0) return;
+
+  // Filter to snakes that are strictly shorter than us.
+  const smallerSnakes = opponents.filter((s) => s.length < myLength);
+  if (smallerSnakes.length === 0) return;
+
+  // Find the closest smaller snake by Manhattan distance from our head.
+  let target = smallerSnakes[0];
+  let targetDistance =
+    Math.abs(myHead.x - target.body[0].x) +
+    Math.abs(myHead.y - target.body[0].y);
+  for (let i = 1; i < smallerSnakes.length; i++) {
+    const d =
+      Math.abs(myHead.x - smallerSnakes[i].body[0].x) +
+      Math.abs(myHead.y - smallerSnakes[i].body[0].y);
+    if (d < targetDistance) {
+      targetDistance = d;
+      target = smallerSnakes[i];
+    }
+  }
+
+  const targetHead = target.body[0];
+
+  // From the safe moves, pick the one that brings us closest to the target.
+  let bestMove;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const direction of safeMoves) {
+    const next = {
+      x: myHead.x + moveDeltas[direction].x,
+      y: myHead.y + moveDeltas[direction].y,
+    };
+    const d = Math.abs(next.x - targetHead.x) + Math.abs(next.y - targetHead.y);
+    if (d < bestDistance) {
+      bestDistance = d;
+      bestMove = direction;
+    }
+  }
+
+  // Only return the move if it actually closes the gap (doesn't move away).
+  if (bestDistance >= targetDistance) return;
+
+  return bestMove;
+}
+
+/**
+ * Simulates our snake moving one step in the given direction and returns the
+ * resulting game state. The snake's body is advanced (tail removed unless food
+ * is eaten), food is removed if eaten, and health is updated. Opponent snakes
+ * are left in their current positions.
+ *
+ * @param {object} gameState - The current game state from the Battlesnake engine.
+ * @param {string} direction - One of "up", "down", "left", or "right".
+ * @returns {object} A new game state reflecting the snake's move.
+ */
+export function simulateMove(gameState, direction) {
+  const mySnake = gameState.you;
+  const board = gameState.board;
+  const delta = moveDeltas[direction];
+
+  const newHead = {
+    x: mySnake.body[0].x + delta.x,
+    y: mySnake.body[0].y + delta.y,
+  };
+
+  const ateFood = board.food.some(
+    (f) => f.x === newHead.x && f.y === newHead.y,
+  );
+
+  const newBody = ateFood
+    ? [newHead, ...mySnake.body]
+    : [newHead, ...mySnake.body.slice(0, -1)];
+
+  const newSnake = {
+    ...mySnake,
+    body: newBody,
+    health: ateFood ? 100 : mySnake.health - 1,
+    length: newBody.length,
+  };
+
+  const newFood = ateFood
+    ? board.food.filter((f) => !(f.x === newHead.x && f.y === newHead.y))
+    : board.food;
+
+  const newSnakes = board.snakes.map((s) =>
+    s.id === mySnake.id ? newSnake : s,
+  );
+
+  return {
+    ...gameState,
+    you: newSnake,
+    board: { ...board, snakes: newSnakes, food: newFood },
+  };
+}
+
+/**
+ * Builds a copy of the board for flood-fill purposes with each snake's tail
+ * segment removed, since tails move away next turn and are not real obstacles.
+ * The tail is kept when the snake just ate (health === 100) because it stays
+ * put for one turn, and for single-segment snakes that have no separate tail.
+ *
+ * @param {object} board - The board from the Battlesnake game state.
+ * @returns {object} A board copy whose snake bodies exclude movable tails.
+ */
+function buildFloodBoard(board) {
+  return {
+    ...board,
+    snakes: board.snakes.map((snake) => {
+      const body =
+        snake.health !== 100 && snake.body.length > 1
+          ? snake.body.slice(0, -1)
+          : snake.body;
+      return { ...snake, body };
+    }),
+  };
+}
+
+function getBoardSize(board) {
+  if (board.width <= 7 || board.height <= 7) return "small";
+  if (board.width >= 15 && board.height >= 15) return "large";
+  return "medium";
+}
+
+/**
  * Decides the snake's next move for the current turn. Combines safety checks
- * (neck, walls, bodies, head-to-head), then prefers food, and finally falls
- * back to the safe move that leads into the most open space via flood fill.
+ * (neck, walls, bodies, head-to-head), then prefers food only when it does not
+ * lead into a cramped space, and finally falls back to the safe move that leads
+ * into the most open space via flood fill.
  *
  * @param {object} gameState - The current game state from the Battlesnake engine.
  * @returns {{move: string}} The chosen direction: "up", "down", "left", or "right".
  */
 function move(gameState) {
   const myHead = gameState.you.body[0];
-  const isMoveSafe = applyHeadToHeadSafety(
-    applyBodyCollisions(getInitialMoveSafety(gameState), gameState),
+  const myHealth = gameState.you.health;
+  const boardSize = getBoardSize(gameState.board);
+
+  const afterBody = applyBodyCollisions(
+    getInitialMoveSafety(gameState),
     gameState,
   );
+  const isMoveSafe = applyHeadToHeadSafety({ ...afterBody }, gameState);
 
   const safeMoves = Object.keys(isMoveSafe).filter((key) => isMoveSafe[key]);
   if (safeMoves.length === 0) {
@@ -246,23 +387,57 @@ function move(gameState) {
     return { move: "down" };
   }
 
+  // Only chase food when the simulated state after eating has enough open space.
   const food = gameState.board.food;
   const foodMove = chooseFoodMove(myHead, safeMoves, food);
   if (foodMove !== undefined) {
-    console.log(`MOVE ${gameState.turn}: ${foodMove}`);
-    return { move: foodMove };
+    const simState = simulateMove(gameState, foodMove);
+    const simFloodBoard = buildFloodBoard(simState.board);
+    const spaceThreshold =
+      boardSize === "small" ? gameState.you.length * 1.5 : gameState.you.length;
+    if (floodFill(simFloodBoard, simState.you.body[0]) >= spaceThreshold) {
+      console.log(`MOVE ${gameState.turn}: ${foodMove}`);
+      return { move: foodMove };
+    }
   }
 
+  // Hunt smaller snakes when we have enough health to be aggressive.
+  const huntThreshold = boardSize === "large" ? 60 : 40;
+  if (myHealth > huntThreshold) {
+    const opponents = gameState.board.snakes.filter(
+      (s) => s.id !== gameState.you.id,
+    );
+    const huntMove = chooseHuntMove(
+      myHead,
+      gameState.you.length,
+      safeMoves,
+      opponents,
+    );
+    if (huntMove !== undefined) {
+      console.log(`MOVE ${gameState.turn}: ${huntMove} (hunt)`);
+      return { move: huntMove };
+    }
+  }
+
+  const starvationThreshold = boardSize === "large" ? 50 : 25;
+  if (boardSize !== "small" && myHealth < starvationThreshold) {
+    const riskyMoves = Object.keys(afterBody).filter((k) => afterBody[k]);
+    const riskyFoodMove = chooseFoodMove(myHead, riskyMoves, food);
+    if (riskyFoodMove !== undefined) {
+      console.log(`MOVE ${gameState.turn}: ${riskyFoodMove}`);
+      return { move: riskyFoodMove };
+    }
+  }
+
+  // Lookahead: simulate each candidate move and score the resulting board state
+  // with flood fill to pick the move that leads into the most open space.
   let bestMove = safeMoves[0];
   let bestSpace = -1;
 
   for (const direction of safeMoves) {
-    const delta = moveDeltas[direction];
-    const nextHead = {
-      x: myHead.x + delta.x,
-      y: myHead.y + delta.y,
-    };
-    const space = floodFill(gameState.board, nextHead);
+    const simState = simulateMove(gameState, direction);
+    const simFloodBoard = buildFloodBoard(simState.board);
+    const space = floodFill(simFloodBoard, simState.you.body[0]);
     if (space > bestSpace) {
       bestSpace = space;
       bestMove = direction;
@@ -284,5 +459,5 @@ if (isMainModule) {
   });
 }
 
-export { info, start, end, move, moveDeltas };
+export { info, start, end, move, moveDeltas, getBoardSize };
 export { floodFill } from "./floodFill.js";
