@@ -40,9 +40,9 @@ Open [localhost:8000](http://localhost:8000) in your browser and you should see 
 {
   "apiversion": "1",
   "author": "yiotak",
-  "color": "#39FF14",
-  "head": "smile",
-  "tail": "pixel"
+  "color": "#000080",
+  "head": "fang",
+  "tail": "bolt"
 }
 ```
 
@@ -66,15 +66,24 @@ Open [localhost:8000](http://localhost:8000) in your browser and you should see 
 
 ```
 .
-├── index.js              # Entry point: Battlesnake handlers and move logic
-├── floodFill.js          # Flood fill algorithm (open-space calculation)
-├── server.js             # Express server exposing the Battlesnake API
-├── index.test.js         # Tests for the move logic and helpers
-├── floodFill.test.js     # Tests for the flood fill algorithm
-├── eslint.config.js      # ESLint configuration
-├── jsdoc.config.json     # JSDoc configuration
-├── docs/                 # Generated HTML documentation
-└── CHANGELOG.md          # Project changelog
+├── .github/
+│   ├── workflows/
+│   │   ├── ci-develop.yml        # CI: lint and test on PR to develop
+│   │   ├── ci-main.yml           # CI: lint, test, and coverage on PR to main
+│   │   └── deploy.yml            # CD: deploy to Railway on push to main
+│   ├── dependabot.yml            # Weekly automated dependency updates
+│   └── PULL_REQUEST_TEMPLATE.md
+├── docs/                         # Generated HTML documentation
+├── index.js                      # Entry point: Battlesnake handlers and move logic
+├── astar.js                      # A* pathfinding algorithm
+├── floodFill.js                  # Flood fill algorithm (open-space calculation)
+├── server.js                     # Express server exposing the Battlesnake API
+├── index.test.js                 # Tests for the move logic and helpers
+├── astar.test.js                 # Tests for the A* pathfinding algorithm
+├── floodFill.test.js             # Tests for the flood fill algorithm
+├── eslint.config.js              # ESLint configuration
+├── jsdoc.config.json             # JSDoc configuration
+└── CHANGELOG.md                  # Project changelog
 ```
 
 ### How it works
@@ -91,8 +100,13 @@ On every turn, the `move` function in `index.js` decides where to go by progress
 1. **Initial safety** (`getInitialMoveSafety`) — avoids moving backwards into the neck and off the board edges.
 2. **Body collisions** (`applyBodyCollisions`) — avoids every snake's body. The tail square is treated as safe because the tail moves away each turn, unless the snake just ate food (health is 100), in which case the tail stays put.
 3. **Head-to-head safety** (`applyHeadToHeadSafety`) — avoids squares an equal or longer opponent could move into next turn (Manhattan distance of 1 from their head).
-4. **Food seeking** (`chooseFoodMove`) — among the safe moves, prefers the direction toward the closest food using Manhattan distance.
-5. **Flood fill fallback** (`floodFill`) — when no food move applies, picks the safe move that leads into the largest open area, helping the snake avoid trapping itself.
+4. **Hazard deprioritisation** — in Royale mode, restricts candidate moves to non-hazard squares; falls back to all safe moves only when every safe move leads into a hazard.
+5. **Food seeking** (`chooseFoodMove`) — uses A\* pathfinding (`astar.js`) to find the actual shortest path to the nearest reachable food, navigating around snake bodies and hazard squares. The food move is only taken if the resulting board state has sufficient open space (flood fill ≥ snake length, ×1.5 on small boards).
+6. **Hunt smaller snakes** (`chooseHuntMove`) — when health is above the aggression threshold (40 on small/medium boards, 60 on large), closes in on the nearest strictly-shorter opponent.
+7. **Starvation risky moves** — on non-small boards, when health drops below the starvation threshold (25 on medium, 50 on large), risks a head-to-head move to reach food.
+8. **Flood fill lookahead** (`floodFill`) — simulates each candidate move and scores the resulting board state with flood fill to pick the move that leads into the most open space.
+
+Board size is classified by `getBoardSize`: **small** (≤7 in either dimension), **medium** (default), or **large** (≥15 in both dimensions). Several thresholds scale with board size.
 
 ### Documentation
 
@@ -127,14 +141,20 @@ Install the [Battlesnake CLI](https://github.com/BattlesnakeOfficial/rules/tree/
 - You can [download compiled binaries here](https://github.com/BattlesnakeOfficial/rules/releases)
 - or [install as a go package](https://github.com/BattlesnakeOfficial/rules/tree/main/cli#installation) (requires Go 1.18 or higher)
 
-Command to run a local game:
+Run a solo game:
 
 ```sh
-battlesnake play -W 11 -H 11 --name 'JavaScript Starter Project' --url http://localhost:8000 -g solo --browser
+battlesnake play -W 11 -H 11 --name 'CCS2430 Snake' --url http://localhost:8000 -g solo --browser
 ```
 
-## Next Steps
+Run a game with two snakes:
 
-Continue with the [Battlesnake Quickstart Guide](https://docs.battlesnake.com/quickstart) to customize and improve your Battlesnake's behavior.
+```sh
+battlesnake play -W 11 -H 11 --name 'CCS2430 Snake' --url http://localhost:8000 --name 'CCS2430 Snake 2' --url http://localhost:8000 -g standard --browser
+```
 
-**Note:** To play games on [play.battlesnake.com](https://play.battlesnake.com) you'll need to deploy your Battlesnake to a live web server OR use a port forwarding tool like [ngrok](https://ngrok.com/) to access your server locally.
+Run a Royale mode game:
+
+```sh
+battlesnake play -W 11 -H 11 --name 'CCS2430 Snake' --url http://localhost:8000 -g royale --browser
+```
