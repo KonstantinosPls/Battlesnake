@@ -208,6 +208,9 @@ export function chooseFoodMove(myHead, safeMoves, food, board) {
     }
   }
   blocked.delete(`${myHead.x},${myHead.y}`);
+  for (const hazard of board.hazards ?? []) {
+    blocked.add(`${hazard.x},${hazard.y}`);
+  }
 
   let bestDirection;
   let bestDistance = Infinity;

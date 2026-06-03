@@ -154,6 +154,42 @@ describe("index move helpers", () => {
     expect(nextMove).toBe("left");
   });
 
+  test("does not route through hazard squares when seeking food", () => {
+    // Head (0,2), food (4,2). A full column of hazards at x=2 walls off the food.
+    // A* must treat hazards as impassable — if it routes through them it incorrectly
+    // finds the food; with hazards blocked the food is unreachable, so undefined.
+    const board = {
+      width: 5,
+      height: 5,
+      snakes: [
+        {
+          id: "you",
+          body: [
+            { x: 0, y: 2 },
+            { x: 0, y: 1 },
+          ],
+          health: 99,
+        },
+      ],
+      hazards: [
+        { x: 2, y: 0 },
+        { x: 2, y: 1 },
+        { x: 2, y: 2 },
+        { x: 2, y: 3 },
+        { x: 2, y: 4 },
+      ],
+    };
+
+    const result = chooseFoodMove(
+      { x: 0, y: 2 },
+      ["up", "right"],
+      [{ x: 4, y: 2 }],
+      board,
+    );
+
+    expect(result).toBeUndefined();
+  });
+
   test("finds a detour when the direct route is blocked by a snake body", () => {
     // Head (2,2), food (0,2). Blocker body at (1,2) means "left" is excluded from
     // safeMoves by applyBodyCollisions. A* detours up → left → left → down = 4 steps,
