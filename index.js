@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import runServer from "./server.js";
 import { floodFill } from "./floodFill.js";
+import { astar } from "./astar.js";
 
 const moveDeltas = {
   up: { x: 0, y: 1 },
@@ -181,48 +182,49 @@ export function applyHeadToHeadSafety(isMoveSafe, gameState) {
 }
 
 /**
- * Picks a safe move that heads toward the closest food by Manhattan distance.
- * Returns undefined when there is no food, no safe moves, or no safe direction
- * that points toward the closest food.
+ * Picks a safe move toward the reachable food with the shortest actual path,
+ * using A* pathfinding with a Manhattan distance heuristic. Unlike a greedy
+ * Manhattan approach, this correctly routes around snake bodies to find the
+ * nearest food by real step count. Returns undefined when no food is reachable
+ * via a safe first move.
  *
  * @param {{x: number, y: number}} myHead - The current position of the snake's head.
  * @param {string[]} safeMoves - The directions currently considered safe.
  * @param {Array<{x: number, y: number}>} food - All food positions on the board.
- * @returns {(string|undefined)} A direction toward the closest food, or undefined if none applies.
+ * @param {{width: number, height: number, snakes: Array<object>}} board - The current board state.
+ * @returns {(string|undefined)} The first direction of the A* path to the nearest reachable food, or undefined.
  */
-export function chooseFoodMove(myHead, safeMoves, food) {
-  if (food.length === 0 || safeMoves.length === 0) {
-    return;
+export function chooseFoodMove(myHead, safeMoves, food, board) {
+  if (food.length === 0 || safeMoves.length === 0) return;
+
+  const blocked = new Set();
+  for (const snake of board.snakes) {
+    const tailIndex =
+      snake.health !== 100 && snake.body.length > 1
+        ? snake.body.length - 1
+        : snake.body.length;
+    for (let i = 0; i < tailIndex; i++) {
+      blocked.add(`${snake.body[i].x},${snake.body[i].y}`);
+    }
+  }
+  blocked.delete(`${myHead.x},${myHead.y}`);
+  for (const hazard of board.hazards ?? []) {
+    blocked.add(`${hazard.x},${hazard.y}`);
   }
 
-  let closestFood = food[0];
-  let minDistance =
-    Math.abs(myHead.x - food[0].x) + Math.abs(myHead.y - food[0].y);
+  let bestDirection;
+  let bestDistance = Infinity;
 
-  for (let i = 1; i < food.length; i++) {
-    const distance =
-      Math.abs(myHead.x - food[i].x) + Math.abs(myHead.y - food[i].y);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestFood = food[i];
+  for (const target of food) {
+    const result = astar(board, myHead, target, blocked);
+    if (result === undefined || !safeMoves.includes(result.direction)) continue;
+    if (result.dist < bestDistance) {
+      bestDistance = result.dist;
+      bestDirection = result.direction;
     }
   }
 
-  const preferredMoves = [];
-  if (closestFood.x < myHead.x && safeMoves.includes("left"))
-    preferredMoves.push("left");
-  if (closestFood.x > myHead.x && safeMoves.includes("right"))
-    preferredMoves.push("right");
-  if (closestFood.y < myHead.y && safeMoves.includes("down"))
-    preferredMoves.push("down");
-  if (closestFood.y > myHead.y && safeMoves.includes("up"))
-    preferredMoves.push("up");
-
-  if (preferredMoves.length === 0) {
-    return;
-  }
-
-  return preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
+  return bestDirection;
 }
 
 /**
@@ -355,6 +357,14 @@ function buildFloodBoard(board) {
   };
 }
 
+/**
+ * Classifies the board into a size category used to scale thresholds throughout
+ * the move logic. Small boards favour conservative play; large boards allow more
+ * aggressive food-chasing and hunting.
+ *
+ * @param {{width: number, height: number}} board - The game board.
+ * @returns {"small"|"medium"|"large"} "small" when either dimension is ≤7, "large" when both are ≥15, otherwise "medium".
+ */
 function getBoardSize(board) {
   if (board.width <= 7 || board.height <= 7) return "small";
   if (board.width >= 15 && board.height >= 15) return "large";
@@ -387,9 +397,27 @@ function move(gameState) {
     return { move: "down" };
   }
 
+  // Deprioritise hazard squares — only enter them when every safe move is a hazard.
+  const hazardSquares = new Set(
+    (gameState.board.hazards ?? []).map((h) => `${h.x},${h.y}`),
+  );
+  const nonHazardMoves = safeMoves.filter((direction) => {
+    const next = {
+      x: myHead.x + moveDeltas[direction].x,
+      y: myHead.y + moveDeltas[direction].y,
+    };
+    return !hazardSquares.has(`${next.x},${next.y}`);
+  });
+  const candidateMoves = nonHazardMoves.length > 0 ? nonHazardMoves : safeMoves;
+
   // Only chase food when the simulated state after eating has enough open space.
   const food = gameState.board.food;
-  const foodMove = chooseFoodMove(myHead, safeMoves, food);
+  const foodMove = chooseFoodMove(
+    myHead,
+    candidateMoves,
+    food,
+    gameState.board,
+  );
   if (foodMove !== undefined) {
     const simState = simulateMove(gameState, foodMove);
     const simFloodBoard = buildFloodBoard(simState.board);
@@ -410,7 +438,7 @@ function move(gameState) {
     const huntMove = chooseHuntMove(
       myHead,
       gameState.you.length,
-      safeMoves,
+      candidateMoves,
       opponents,
     );
     if (huntMove !== undefined) {
@@ -422,7 +450,12 @@ function move(gameState) {
   const starvationThreshold = boardSize === "large" ? 50 : 25;
   if (boardSize !== "small" && myHealth < starvationThreshold) {
     const riskyMoves = Object.keys(afterBody).filter((k) => afterBody[k]);
-    const riskyFoodMove = chooseFoodMove(myHead, riskyMoves, food);
+    const riskyFoodMove = chooseFoodMove(
+      myHead,
+      riskyMoves,
+      food,
+      gameState.board,
+    );
     if (riskyFoodMove !== undefined) {
       console.log(`MOVE ${gameState.turn}: ${riskyFoodMove}`);
       return { move: riskyFoodMove };
@@ -431,10 +464,10 @@ function move(gameState) {
 
   // Lookahead: simulate each candidate move and score the resulting board state
   // with flood fill to pick the move that leads into the most open space.
-  let bestMove = safeMoves[0];
+  let bestMove = candidateMoves[0];
   let bestSpace = -1;
 
-  for (const direction of safeMoves) {
+  for (const direction of candidateMoves) {
     const simState = simulateMove(gameState, direction);
     const simFloodBoard = buildFloodBoard(simState.board);
     const space = floodFill(simFloodBoard, simState.you.body[0]);

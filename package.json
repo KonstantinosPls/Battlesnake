@@ -1,6 +1,6 @@
 {
   "name": "starter-snake-javascript",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "author": "BattlesnakeOfficial",
   "description": "An official Battlesnake template written in JavaScript. Get started at play.battlesnake.com.",
   "license": "MIT",
@@ -28,7 +28,8 @@
   "jest": {
     "collectCoverageFrom": [
       "index.js",
-      "floodFill.js"
+      "floodFill.js",
+      "astar.js"
     ],
     "coverageThreshold": {
       "global": {

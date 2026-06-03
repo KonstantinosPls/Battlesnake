@@ -50,4 +50,27 @@ describe("floodFill", () => {
     const board = makeBoard(1, 1);
     expect(floodFill(board, { x: 0, y: 0 })).toBe(1);
   });
+
+  test("treats hazard squares as impassable in flood fill", () => {
+    // A vertical column of hazards at x=2 splits the 5×5 board.
+    // Starting at (0,0) can only reach the 10 squares in columns 0 and 1.
+    const board = {
+      width: 5,
+      height: 5,
+      snakes: [],
+      hazards: [
+        { x: 2, y: 0 },
+        { x: 2, y: 1 },
+        { x: 2, y: 2 },
+        { x: 2, y: 3 },
+        { x: 2, y: 4 },
+      ],
+    };
+    expect(floodFill(board, { x: 0, y: 0 })).toBe(10);
+  });
+
+  test("behaves identically when the hazards array is empty (non-Royale)", () => {
+    const board = { width: 3, height: 3, snakes: [], hazards: [] };
+    expect(floodFill(board, { x: 0, y: 0 })).toBe(9);
+  });
 });
