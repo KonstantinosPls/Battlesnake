@@ -28,7 +28,8 @@
   "jest": {
     "collectCoverageFrom": [
       "index.js",
-      "floodFill.js"
+      "floodFill.js",
+      "astar.js"
     ],
     "coverageThreshold": {
       "global": {

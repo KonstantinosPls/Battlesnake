@@ -137,7 +137,9 @@ describe("index move helpers", () => {
   });
 
   test("chooses a food-seeking move toward the closest food", () => {
-    jest.spyOn(Math, "random").mockReturnValue(0);
+    // Open 5×5 board, no bodies. Food at (0,2) dist=2 and (4,4) — path to (4,4)
+    // starts with "right" which is not in safeMoves, so A* skips it. Returns "left".
+    const board = { width: 5, height: 5, snakes: [] };
 
     const nextMove = chooseFoodMove(
       { x: 2, y: 2 },
@@ -146,9 +148,107 @@ describe("index move helpers", () => {
         { x: 0, y: 2 },
         { x: 4, y: 4 },
       ],
+      board,
     );
 
     expect(nextMove).toBe("left");
+  });
+
+  test("finds a detour when the direct route is blocked by a snake body", () => {
+    // Head (2,2), food (0,2). Blocker body at (1,2) means "left" is excluded from
+    // safeMoves by applyBodyCollisions. A* detours up → left → left → down = 4 steps,
+    // firstDir "up", which IS in safeMoves.
+    const board = {
+      width: 5,
+      height: 5,
+      snakes: [
+        {
+          id: "you",
+          body: [
+            { x: 2, y: 2 },
+            { x: 2, y: 1 },
+          ],
+          health: 99,
+        },
+        { id: "blocker", body: [{ x: 1, y: 2 }], health: 99 },
+      ],
+    };
+
+    const result = chooseFoodMove(
+      { x: 2, y: 2 },
+      ["up", "right"],
+      [{ x: 0, y: 2 }],
+      board,
+    );
+
+    expect(result).toBe("up");
+  });
+
+  test("returns undefined when all paths to food are blocked", () => {
+    // Food at (2,2) on 5×5 board. A 6-segment snake wraps all four adjacent
+    // squares. The tail (body[5]) is at (4,1) — not adjacent to food — so all
+    // four neighbours of (2,2) remain in the blocked set and A* returns null.
+    const board = {
+      width: 5,
+      height: 5,
+      snakes: [
+        {
+          id: "wall",
+          body: [
+            { x: 2, y: 3 }, // blocks above food
+            { x: 2, y: 1 }, // blocks below food
+            { x: 1, y: 2 }, // blocks left of food
+            { x: 3, y: 2 }, // blocks right of food
+            { x: 4, y: 2 }, // filler
+            { x: 4, y: 1 }, // tail — excluded from blocked, but not adjacent to food
+          ],
+          health: 99,
+        },
+      ],
+    };
+
+    const result = chooseFoodMove(
+      { x: 0, y: 0 },
+      ["up", "right"],
+      [{ x: 2, y: 2 }],
+      board,
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  test("picks the food reachable by the shorter actual path, not the shorter Manhattan distance", () => {
+    // Head (2,2), safeMoves ["up","right"].
+    // Food A at (2,4): Manhattan dist=2 but (2,3) blocked → A* detour, actual dist>2.
+    // Food B at (5,2): Manhattan dist=3, clear path right×3, actual dist=3.
+    // A* should pick Food B ("right"), even though Food A is closer by Manhattan.
+    const board = {
+      width: 11,
+      height: 11,
+      snakes: [
+        {
+          id: "you",
+          body: [
+            { x: 2, y: 2 },
+            { x: 2, y: 1 },
+          ],
+          health: 99,
+        },
+        { id: "blocker", body: [{ x: 2, y: 3 }], health: 99 },
+      ],
+    };
+
+    const result = chooseFoodMove(
+      { x: 2, y: 2 },
+      ["up", "right"],
+      [
+        { x: 2, y: 4 },
+        { x: 5, y: 2 },
+      ],
+      board,
+    );
+
+    expect(result).toBe("right");
   });
 
   test("move prefers food when a safe direction points to it", () => {
