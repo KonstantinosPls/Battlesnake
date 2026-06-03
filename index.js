@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import runServer from "./server.js";
 import { floodFill } from "./floodFill.js";
+import { astar } from "./astar.js";
 
 const moveDeltas = {
   up: { x: 0, y: 1 },
@@ -181,48 +182,46 @@ export function applyHeadToHeadSafety(isMoveSafe, gameState) {
 }
 
 /**
- * Picks a safe move that heads toward the closest food by Manhattan distance.
- * Returns undefined when there is no food, no safe moves, or no safe direction
- * that points toward the closest food.
+ * Picks a safe move toward the reachable food with the shortest actual path,
+ * using A* pathfinding with a Manhattan distance heuristic. Unlike a greedy
+ * Manhattan approach, this correctly routes around snake bodies to find the
+ * nearest food by real step count. Returns undefined when no food is reachable
+ * via a safe first move.
  *
  * @param {{x: number, y: number}} myHead - The current position of the snake's head.
  * @param {string[]} safeMoves - The directions currently considered safe.
  * @param {Array<{x: number, y: number}>} food - All food positions on the board.
- * @returns {(string|undefined)} A direction toward the closest food, or undefined if none applies.
+ * @param {{width: number, height: number, snakes: Array<object>}} board - The current board state.
+ * @returns {(string|undefined)} The first direction of the A* path to the nearest reachable food, or undefined.
  */
-export function chooseFoodMove(myHead, safeMoves, food) {
-  if (food.length === 0 || safeMoves.length === 0) {
-    return;
+export function chooseFoodMove(myHead, safeMoves, food, board) {
+  if (food.length === 0 || safeMoves.length === 0) return;
+
+  const blocked = new Set();
+  for (const snake of board.snakes) {
+    const tailIndex =
+      snake.health !== 100 && snake.body.length > 1
+        ? snake.body.length - 1
+        : snake.body.length;
+    for (let i = 0; i < tailIndex; i++) {
+      blocked.add(`${snake.body[i].x},${snake.body[i].y}`);
+    }
   }
+  blocked.delete(`${myHead.x},${myHead.y}`);
 
-  let closestFood = food[0];
-  let minDistance =
-    Math.abs(myHead.x - food[0].x) + Math.abs(myHead.y - food[0].y);
+  let bestDirection;
+  let bestDistance = Infinity;
 
-  for (let i = 1; i < food.length; i++) {
-    const distance =
-      Math.abs(myHead.x - food[i].x) + Math.abs(myHead.y - food[i].y);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestFood = food[i];
+  for (const target of food) {
+    const result = astar(board, myHead, target, blocked);
+    if (result === undefined || !safeMoves.includes(result.direction)) continue;
+    if (result.dist < bestDistance) {
+      bestDistance = result.dist;
+      bestDirection = result.direction;
     }
   }
 
-  const preferredMoves = [];
-  if (closestFood.x < myHead.x && safeMoves.includes("left"))
-    preferredMoves.push("left");
-  if (closestFood.x > myHead.x && safeMoves.includes("right"))
-    preferredMoves.push("right");
-  if (closestFood.y < myHead.y && safeMoves.includes("down"))
-    preferredMoves.push("down");
-  if (closestFood.y > myHead.y && safeMoves.includes("up"))
-    preferredMoves.push("up");
-
-  if (preferredMoves.length === 0) {
-    return;
-  }
-
-  return preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
+  return bestDirection;
 }
 
 /**
@@ -389,7 +388,7 @@ function move(gameState) {
 
   // Only chase food when the simulated state after eating has enough open space.
   const food = gameState.board.food;
-  const foodMove = chooseFoodMove(myHead, safeMoves, food);
+  const foodMove = chooseFoodMove(myHead, safeMoves, food, gameState.board);
   if (foodMove !== undefined) {
     const simState = simulateMove(gameState, foodMove);
     const simFloodBoard = buildFloodBoard(simState.board);
@@ -422,7 +421,12 @@ function move(gameState) {
   const starvationThreshold = boardSize === "large" ? 50 : 25;
   if (boardSize !== "small" && myHealth < starvationThreshold) {
     const riskyMoves = Object.keys(afterBody).filter((k) => afterBody[k]);
-    const riskyFoodMove = chooseFoodMove(myHead, riskyMoves, food);
+    const riskyFoodMove = chooseFoodMove(
+      myHead,
+      riskyMoves,
+      food,
+      gameState.board,
+    );
     if (riskyFoodMove !== undefined) {
       console.log(`MOVE ${gameState.turn}: ${riskyFoodMove}`);
       return { move: riskyFoodMove };
