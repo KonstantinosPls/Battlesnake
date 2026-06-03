@@ -3,6 +3,7 @@ import { jest } from "@jest/globals";
 import {
   applyBodyCollisions,
   applyHeadToHeadSafety,
+  chooseHuntMove,
   chooseFoodMove,
   getBoardSize,
   getInitialMoveSafety,
@@ -456,5 +457,46 @@ describe("move size-aware behaviour", () => {
     // Food is right but right is head-to-head danger. On a large board,
     // starvationThreshold=50 so health=40 triggers the risky block → chases food.
     expect(move(gameState)).toEqual({ move: "right" });
+  });
+});
+
+describe("chooseHuntMove", () => {
+  test("returns the move that closes in on the nearest smaller snake", () => {
+    // Our head at (5,5), length 4. Smaller enemy head at (7,5), length 2.
+    // Moving right brings us to (6,5) — distance 1. Moving up brings us to
+    // (5,6) — distance sqrt(4+1)≈2.2 (Manhattan: |7-5|+|5-6|=3). Right wins.
+    const result = chooseHuntMove(
+      { x: 5, y: 5 },
+      4,
+      ["up", "right"],
+      [{ id: "prey", body: [{ x: 7, y: 5 }], length: 2 }],
+    );
+
+    expect(result).toBe("right");
+  });
+
+  test("returns undefined when no opponent is strictly shorter", () => {
+    // Our length is 3; opponent length is also 3 — not shorter, so no hunt.
+    const result = chooseHuntMove(
+      { x: 5, y: 5 },
+      3,
+      ["up", "right"],
+      [{ id: "equal", body: [{ x: 6, y: 5 }], length: 3 }],
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  test("returns undefined when no safe move closes the gap", () => {
+    // Our head at (5,5), smaller enemy at (3,5) — to the left.
+    // Only safe move is "right" (moving away). Gap doesn't close → undefined.
+    const result = chooseHuntMove(
+      { x: 5, y: 5 },
+      4,
+      ["right"],
+      [{ id: "prey", body: [{ x: 3, y: 5 }], length: 2 }],
+    );
+
+    expect(result).toBeUndefined();
   });
 });

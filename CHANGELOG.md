@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Configure Jest coverage threshold (≥50%) and scope in package.json
 - Add check-issues.txt documenting the two issues following the full status flow
 - Implement 1-move lookahead using flood fill heuristic: simulate each candidate move before scoring so the snake evaluates space in the resulting board state
+- Hunt smaller snakes: when health is above the aggression threshold, prefer moves that close in on the nearest opponent shorter than our snake
 
 ### Fixed
 
