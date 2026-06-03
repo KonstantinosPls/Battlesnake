@@ -386,9 +386,27 @@ function move(gameState) {
     return { move: "down" };
   }
 
+  // Deprioritise hazard squares — only enter them when every safe move is a hazard.
+  const hazardSquares = new Set(
+    (gameState.board.hazards ?? []).map((h) => `${h.x},${h.y}`),
+  );
+  const nonHazardMoves = safeMoves.filter((direction) => {
+    const next = {
+      x: myHead.x + moveDeltas[direction].x,
+      y: myHead.y + moveDeltas[direction].y,
+    };
+    return !hazardSquares.has(`${next.x},${next.y}`);
+  });
+  const candidateMoves = nonHazardMoves.length > 0 ? nonHazardMoves : safeMoves;
+
   // Only chase food when the simulated state after eating has enough open space.
   const food = gameState.board.food;
-  const foodMove = chooseFoodMove(myHead, safeMoves, food, gameState.board);
+  const foodMove = chooseFoodMove(
+    myHead,
+    candidateMoves,
+    food,
+    gameState.board,
+  );
   if (foodMove !== undefined) {
     const simState = simulateMove(gameState, foodMove);
     const simFloodBoard = buildFloodBoard(simState.board);
@@ -409,7 +427,7 @@ function move(gameState) {
     const huntMove = chooseHuntMove(
       myHead,
       gameState.you.length,
-      safeMoves,
+      candidateMoves,
       opponents,
     );
     if (huntMove !== undefined) {
@@ -435,10 +453,10 @@ function move(gameState) {
 
   // Lookahead: simulate each candidate move and score the resulting board state
   // with flood fill to pick the move that leads into the most open space.
-  let bestMove = safeMoves[0];
+  let bestMove = candidateMoves[0];
   let bestSpace = -1;
 
-  for (const direction of safeMoves) {
+  for (const direction of candidateMoves) {
     const simState = simulateMove(gameState, direction);
     const simFloodBoard = buildFloodBoard(simState.board);
     const space = floodFill(simFloodBoard, simState.you.body[0]);

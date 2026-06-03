@@ -560,6 +560,68 @@ describe("move size-aware behaviour", () => {
   });
 });
 
+describe("Royale hazard avoidance", () => {
+  test("avoids a hazard move when a safe non-hazard alternative exists", () => {
+    // Head (1,1), neck (1,0). Safe moves: up (1,2), left (0,1), right (2,1).
+    // Hazards cover (1,2) and (2,1), leaving only left as a non-hazard safe move.
+    const you = {
+      id: "you",
+      body: [
+        { x: 1, y: 1 },
+        { x: 1, y: 0 },
+      ],
+      health: 99,
+      length: 2,
+    };
+    const gameState = {
+      turn: 1,
+      board: {
+        width: 3,
+        height: 3,
+        food: [],
+        snakes: [you],
+        hazards: [
+          { x: 1, y: 2 },
+          { x: 2, y: 1 },
+        ],
+      },
+      you,
+    };
+    expect(move(gameState)).toEqual({ move: "left" });
+  });
+
+  test("falls back to any safe move when all safe moves lead into hazards", () => {
+    // Head (1,1), neck (1,0). All three safe moves (up, left, right) are hazards.
+    // Snake must still return one of them rather than crashing.
+    const you = {
+      id: "you",
+      body: [
+        { x: 1, y: 1 },
+        { x: 1, y: 0 },
+      ],
+      health: 99,
+      length: 2,
+    };
+    const gameState = {
+      turn: 1,
+      board: {
+        width: 3,
+        height: 3,
+        food: [],
+        snakes: [you],
+        hazards: [
+          { x: 1, y: 2 },
+          { x: 0, y: 1 },
+          { x: 2, y: 1 },
+        ],
+      },
+      you,
+    };
+    const result = move(gameState);
+    expect(["up", "left", "right"]).toContain(result.move);
+  });
+});
+
 describe("chooseHuntMove", () => {
   test("returns the move that closes in on the nearest smaller snake", () => {
     // Our head at (5,5), length 4. Smaller enemy head at (7,5), length 2.
