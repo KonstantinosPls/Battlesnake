@@ -226,6 +226,64 @@ export function chooseFoodMove(myHead, safeMoves, food) {
 }
 
 /**
+ * Picks a safe move that intercepts the nearest opponent that is strictly
+ * shorter than our snake. Among all safe directions, chooses the one whose
+ * resulting head position has the smallest Manhattan distance to the target
+ * opponent's head. Returns undefined when no shorter opponent exists or no
+ * safe direction moves toward one.
+ *
+ * @param {{x: number, y: number}} myHead - The current position of our snake's head.
+ * @param {number} myLength - The current length of our snake.
+ * @param {string[]} safeMoves - The directions currently considered safe.
+ * @param {Array<object>} opponents - All opponent snakes from the board.
+ * @returns {(string|undefined)} The direction that best intercepts a smaller snake, or undefined.
+ */
+export function chooseHuntMove(myHead, myLength, safeMoves, opponents) {
+  if (safeMoves.length === 0) return;
+
+  // Filter to snakes that are strictly shorter than us.
+  const smallerSnakes = opponents.filter((s) => s.length < myLength);
+  if (smallerSnakes.length === 0) return;
+
+  // Find the closest smaller snake by Manhattan distance from our head.
+  let target = smallerSnakes[0];
+  let targetDistance =
+    Math.abs(myHead.x - target.body[0].x) +
+    Math.abs(myHead.y - target.body[0].y);
+  for (let i = 1; i < smallerSnakes.length; i++) {
+    const d =
+      Math.abs(myHead.x - smallerSnakes[i].body[0].x) +
+      Math.abs(myHead.y - smallerSnakes[i].body[0].y);
+    if (d < targetDistance) {
+      targetDistance = d;
+      target = smallerSnakes[i];
+    }
+  }
+
+  const targetHead = target.body[0];
+
+  // From the safe moves, pick the one that brings us closest to the target.
+  let bestMove;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const direction of safeMoves) {
+    const next = {
+      x: myHead.x + moveDeltas[direction].x,
+      y: myHead.y + moveDeltas[direction].y,
+    };
+    const d = Math.abs(next.x - targetHead.x) + Math.abs(next.y - targetHead.y);
+    if (d < bestDistance) {
+      bestDistance = d;
+      bestMove = direction;
+    }
+  }
+
+  // Only return the move if it actually closes the gap (doesn't move away).
+  if (bestDistance >= targetDistance) return;
+
+  return bestMove;
+}
+
+/**
  * Simulates our snake moving one step in the given direction and returns the
  * resulting game state. The snake's body is advanced (tail removed unless food
  * is eaten), food is removed if eaten, and health is updated. Opponent snakes
@@ -340,6 +398,24 @@ function move(gameState) {
     if (floodFill(simFloodBoard, simState.you.body[0]) >= spaceThreshold) {
       console.log(`MOVE ${gameState.turn}: ${foodMove}`);
       return { move: foodMove };
+    }
+  }
+
+  // Hunt smaller snakes when we have enough health to be aggressive.
+  const huntThreshold = boardSize === "large" ? 60 : 40;
+  if (myHealth > huntThreshold) {
+    const opponents = gameState.board.snakes.filter(
+      (s) => s.id !== gameState.you.id,
+    );
+    const huntMove = chooseHuntMove(
+      myHead,
+      gameState.you.length,
+      safeMoves,
+      opponents,
+    );
+    if (huntMove !== undefined) {
+      console.log(`MOVE ${gameState.turn}: ${huntMove} (hunt)`);
+      return { move: huntMove };
     }
   }
 
