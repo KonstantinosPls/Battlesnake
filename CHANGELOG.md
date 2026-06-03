@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-01
+
 ### Added
 
 - Add CI/CD GitHub Actions workflows: run tests and lint on PR to develop, run tests, lint, and coverage check (≥50%) on PR to main, deploy to Railway on push to main
